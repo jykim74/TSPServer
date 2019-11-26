@@ -71,8 +71,8 @@ int main( int argc, char *argv[] )
     initServer();
 
     JS_THD_logInit( "./log", "tsp", 2 );
-    JS_THD_registerService( "JS_TSP", NULL, 9010, 4, NULL, TSP_Service );
-    JS_THD_registerService( "JS_TSP_SSL", NULL, 9110, 4, NULL, TSP_SSL_Service );
+    JS_THD_registerService( "JS_TSP", NULL, 9020, 4, NULL, TSP_Service );
+    JS_THD_registerService( "JS_TSP_SSL", NULL, 9120, 4, NULL, TSP_SSL_Service );
     JS_THD_serviceStartAll();
 
     return 0;
