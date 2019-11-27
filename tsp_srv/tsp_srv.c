@@ -17,25 +17,39 @@ int TSP_Service( JThreadInfo *pThInfo )
     JSNameValList   *pHeaderList = NULL;
     JSNameValList   *pRspHeaderList = NULL;
     char            *pBody = NULL;
-    int             nStatus = -1;
+
     BIN             binReq = {0,0};
     BIN             binRsp = {0,0};
-    const char      *pMethod = "POST";
+    const char      *pMethod = "POST /TSP HTTP/1.1";
+    char            *pMethInfo = NULL;
 
     printf( "Service start\n" );
 
-    ret = JS_HTTP_recvBin( pThInfo->nSockFd, &nStatus, &pHeaderList, &binReq );
+    ret = JS_HTTP_recvBin( pThInfo->nSockFd, &pMethInfo, &pHeaderList, &binReq );
     if( ret != 0 )
     {
+        fprintf( stderr, "fail to receive message(%d)\n", ret );
         goto end;
     }
 
-    if( nStatus == 200 )
+    if( pMethInfo ) printf( "MethInfo : %s\n", pMethInfo );
+
+    ret = procTSP( &binReq, &binRsp );
+    if( ret != 0 )
     {
-        ret = procTSP( &binReq, &binRsp );
+        fprintf( stderr, "fail procTCP(%d)\n", ret );
+        goto end;
     }
 
-    ret = JS_HTTP_sendBin( pThInfo->nSockFd, pMethod, pRspHeaderList, &binRsp );
+    JS_UTIL_createNameValList2("accept", "application/json", &pRspHeaderList);
+    JS_UTIL_appendNameValList2( pRspHeaderList, "content-type", "application/json");
+
+    ret = JS_HTTP_sendBin( pThInfo->nSockFd, JS_HTTP_OK, pRspHeaderList, &binRsp );
+    if( ret != 0 )
+    {
+        fprintf( stderr, "fail to send message(%d)\n", ret );
+        goto end;
+    }
 
 end :
     if( pBody ) JS_free( pBody );
@@ -44,6 +58,7 @@ end :
 
     JS_BIN_reset( &binReq );
     JS_BIN_reset( &binRsp );
+    if( pMethInfo ) JS_free( pMethInfo );
 
     return ret;
 }
@@ -57,8 +72,8 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
 
 int initServer()
 {
-    const char *pTSPCertPath = "/Users/jykim/work/PKITester/data/user_cert.der";
-    const char *pTSPPriPath = "/Users/jykim/work/PKITester/data/user_prikey.der";
+    const char *pTSPCertPath = "/Users/jykim/work/PKITester/data/tsp_server_cert.der";
+    const char *pTSPPriPath = "/Users/jykim/work/PKITester/data/tsp_server_prikey.der";
 
     JS_BIN_fileRead( pTSPCertPath, &g_binTspCert );
     JS_BIN_fileRead( pTSPPriPath, &g_binTspPri );
