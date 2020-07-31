@@ -22,7 +22,7 @@ int TSP_Service( JThreadInfo *pThInfo )
 
     BIN             binReq = {0,0};
     BIN             binRsp = {0,0};
-    const char      *pMethod = "POST /TSP HTTP/1.1";
+    const char      *pMethod = NULL;
     char            *pMethInfo = NULL;
 
     char            *pPath = NULL;
@@ -57,7 +57,8 @@ int TSP_Service( JThreadInfo *pThInfo )
     JS_UTIL_createNameValList2("accept", "application/tsp-response", &pRspHeaderList);
     JS_UTIL_appendNameValList2( pRspHeaderList, "content-type", "application/tps-response");
 
-    ret = JS_HTTP_sendBin( pThInfo->nSockFd, JS_HTTP_OK, pRspHeaderList, &binRsp );
+    pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
+    ret = JS_HTTP_sendBin( pThInfo->nSockFd, pMethod, pRspHeaderList, &binRsp );
     if( ret != 0 )
     {
         fprintf( stderr, "fail to send message(%d)\n", ret );
@@ -87,8 +88,8 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
 
 int initServer()
 {
-    const char *pTSPCertPath = "/Users/jykim/work/PKITester/data/tsp_server_cert.der";
-    const char *pTSPPriPath = "/Users/jykim/work/PKITester/data/tsp_server_prikey.der";
+    const char *pTSPCertPath = "D:/certs/tsp_cert.der";
+    const char *pTSPPriPath = "D:/certs/tsp_key.der";
 
     JS_BIN_fileRead( pTSPCertPath, &g_binTspCert );
     JS_BIN_fileRead( pTSPPriPath, &g_binTspPri );
