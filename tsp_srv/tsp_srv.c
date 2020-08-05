@@ -1,15 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 
 #include "js_process.h"
 #include "js_http.h"
 #include "js_tsp.h"
+#include "js_cfg.h"
 
 #include "tsp_srv.h"
 
 BIN     g_binTspCert = {0,0};
 BIN     g_binTspPri = {0,0};
+
+static char g_sConfigPath[1024];
+int g_nVerbose = 0;
+JEnvList        *g_pEnvList = NULL;
+static char g_sBuildInfo[1024];
+
+const char *getBuildInfo()
+{
+    sprintf( g_sBuildInfo, "Version: %s Build Date : %s %s",
+             JS_TSP_SRV_VERSION, __DATE__, __TIME__ );
+
+    return g_sBuildInfo;
+}
 
 int TSP_Service( JThreadInfo *pThInfo )
 {
@@ -88,17 +103,80 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
 
 int initServer()
 {
-    const char *pTSPCertPath = "D:/certs/tsp_cert.der";
-    const char *pTSPPriPath = "D:/certs/tsp_key.der";
+    int ret = 0;
+    const char *value = NULL;
 
-    JS_BIN_fileRead( pTSPCertPath, &g_binTspCert );
-    JS_BIN_fileRead( pTSPPriPath, &g_binTspPri );
+    ret = JS_CFG_readConfig( g_sConfigPath, &g_pEnvList );
+    if( ret != 0 )
+    {
+        fprintf( stderr, "fail to open config file(%s)\n", g_sConfigPath );
+        exit(0);
+    }
+
+    value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_CERT_PATH" );
+    if( value == NULL )
+    {
+        fprintf( stderr, "You have to set 'TSP_SRV_CERT_PATH'\n" );
+        exit(0);
+    }
+
+    ret = JS_BIN_fileRead( value, &g_binTspCert );
+    if( ret != 0 )
+    {
+        fprintf( stderr, "fail to read tsp srv cert(%s)\n", value );
+        exit(0);
+    }
+
+    value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PATH" );
+    if( value == NULL )
+    {
+        fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_PATH'\n" );
+        exit(0);
+    }
+
+    ret = JS_BIN_fileRead( value, &g_binTspPri );
+    if( ret != 0 )
+    {
+        fprintf( stderr, "fail to read ocsp private key(%s)\n", value );
+        exit(0);
+    }
+
+    printf( "TSP Server Init OK\n" );
 
     return 0;
 }
 
+void printUsage()
+{
+    printf( "JS TSP Server ( %s )\n", getBuildInfo() );
+    printf( "[Options]\n" );
+    printf( "-v         : Verbose on(%d)\n", g_nVerbose );
+    printf( "-c config : set config file(%s)\n", g_sConfigPath );
+    printf( "-h         : Print this message\n" );
+}
+
 int main( int argc, char *argv[] )
 {
+    int nOpt = 0;
+    sprintf( g_sConfigPath, "%s", "../tsp_srv.cfg" );
+
+    while(( nOpt = getopt( argc, argv, "c:vh")) != -1 )
+    {
+        switch( nOpt ) {
+        case 'h':
+            printUsage();
+            return 0;
+
+        case 'v':
+            g_nVerbose = 1;
+            break;
+
+        case 'c':
+            sprintf( g_sConfigPath, "%s", optarg );
+            break;
+        }
+    }
+
     initServer();
 
     JS_THD_logInit( "./log", "tsp", 2 );
