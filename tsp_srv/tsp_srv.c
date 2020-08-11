@@ -57,7 +57,7 @@ int TSP_Service( JThreadInfo *pThInfo )
 
     if( strcasecmp( pPath, "/PING" ) == 0 )
     {
-
+        pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
     }
     else if( strcasecmp( pPath, "/TSP" ) == 0 )
     {
@@ -66,13 +66,14 @@ int TSP_Service( JThreadInfo *pThInfo )
         {
             fprintf( stderr, "fail procTCP(%d)\n", ret );
            goto end;
-       }
+        }
+
+        pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
     }
 
     JS_UTIL_createNameValList2("accept", "application/tsp-response", &pRspHeaderList);
     JS_UTIL_appendNameValList2( pRspHeaderList, "content-type", "application/tps-response");
 
-    pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
     ret = JS_HTTP_sendBin( pThInfo->nSockFd, pMethod, pRspHeaderList, &binRsp );
     if( ret != 0 )
     {
