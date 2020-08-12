@@ -17,6 +17,7 @@ int procTSP( const BIN *pReq, BIN *pRsp )
     if( ret != 0 )
     {
         fprintf( stderr, "fail to decode tsp request(%d)\n", ret );
+        ret = JS_TSP_encodeFailResponse( JS_TS_STATUS_REJECTION, pRsp );
         goto end;
     }
 
@@ -24,6 +25,7 @@ int procTSP( const BIN *pReq, BIN *pRsp )
     if( ret != 0 )
     {
         fprintf( stderr, "fail to encode tsp response(%d)\n", ret );
+        ret = JS_TSP_encodeFailResponse( JS_TS_STATUS_REJECTION, pRsp );
         goto end;
     }
 
