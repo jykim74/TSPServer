@@ -7,6 +7,7 @@
 #include "js_http.h"
 #include "js_tsp.h"
 #include "js_cfg.h"
+#include "js_db.h"
 
 #include "tsp_srv.h"
 
@@ -19,6 +20,7 @@ static char g_sConfigPath[1024];
 int g_nVerbose = 0;
 JEnvList        *g_pEnvList = NULL;
 static char g_sBuildInfo[1024];
+const char *g_dbPath = NULL;
 
 const char *getBuildInfo()
 {
@@ -47,6 +49,14 @@ int TSP_Service( JThreadInfo *pThInfo )
 
     printf( "Service start\n" );
 
+    sqlite3* db = JS_DB_open( g_dbPath );
+    if( db == NULL )
+    {
+        fprintf( stderr, "fail to open db file(%s)\n", g_dbPath );
+        ret = -1;
+        goto end;
+    }
+
     ret = JS_HTTP_recvBin( pThInfo->nSockFd, &pMethInfo, &pHeaderList, &binReq );
     if( ret != 0 )
     {
@@ -63,7 +73,7 @@ int TSP_Service( JThreadInfo *pThInfo )
     }
     else if( strcasecmp( pPath, "/TSP" ) == 0 )
     {
-        ret = procTSP( &binReq, &binRsp );
+        ret = procTSP( db, &binReq, &binRsp );
         if( ret != 0 )
         {
             fprintf( stderr, "fail procTCP(%d)\n", ret );
@@ -93,6 +103,7 @@ end :
     JS_BIN_reset( &binRsp );
     if( pMethInfo ) JS_free( pMethInfo );
     if( pPath ) JS_free( pPath );
+    if( db ) JS_DB_close( db );
 
     return ret;
 }
@@ -117,6 +128,14 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
 
     printf( "SSL Service start\n" );
 
+    sqlite3* db = JS_DB_open( g_dbPath );
+    if( db == NULL )
+    {
+        fprintf( stderr, "fail to open db file(%s)\n", g_dbPath );
+        ret = -1;
+        goto end;
+    }
+
     ret = JS_SSL_accept( g_pSSLCTX, pThInfo->nSockFd, &pSSL );
     if( ret != 0 )
     {
@@ -140,7 +159,7 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
     }
     else if( strcasecmp( pPath, "/TSP" ) == 0 )
     {
-        ret = procTSP( &binReq, &binRsp );
+        ret = procTSP( db, &binReq, &binRsp );
         if( ret != 0 )
         {
             fprintf( stderr, "fail procTCP(%d)\n", ret );
@@ -171,6 +190,7 @@ end :
     if( pMethInfo ) JS_free( pMethInfo );
     if( pPath ) JS_free( pPath );
     if( pSSL ) JS_SSL_clear( pSSL );
+    if( db ) JS_DB_close( db );
 
     return ret;
 }
@@ -268,6 +288,15 @@ int initServer()
     JS_BIN_reset( &binSSLCA );
     JS_BIN_reset( &binSSLCert );
     JS_BIN_reset( &binSSLPri );
+
+    value = JS_CFG_getValue( g_pEnvList, "DB_PATH" );
+    if( value == NULL )
+    {
+        fprintf( stderr, "You have to set 'DB_PATH'\n" );
+        exit(0);
+    }
+
+    g_dbPath = JS_strdup( value );
 
     printf( "TSP Server Init OK\n" );
 

@@ -1,12 +1,12 @@
 #include "js_bin.h"
 #include "js_tsp.h"
-
+#include "js_db.h"
 #include "tsp_srv.h"
 
 extern BIN g_binTspCert;
 extern BIN g_binTspPri;
 
-int procTSP( const BIN *pReq, BIN *pRsp )
+int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
 {
     int     ret = 0;
     BIN     binMsg = {0,0};
