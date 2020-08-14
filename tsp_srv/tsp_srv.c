@@ -21,6 +21,7 @@ int g_nVerbose = 0;
 JEnvList        *g_pEnvList = NULL;
 static char g_sBuildInfo[1024];
 const char *g_dbPath = NULL;
+const char *g_pSerialPath = NULL;
 
 const char *getBuildInfo()
 {
@@ -297,6 +298,15 @@ int initServer()
     }
 
     g_dbPath = JS_strdup( value );
+
+    value = JS_CFG_getValue( g_pEnvList, "SERIAL_PATH" );
+    if( value == NULL )
+    {
+        fprintf( stderr, "You have to set 'SERIAL_PATH'\n" );
+        exit(0);
+    }
+
+    g_pSerialPath = JS_strdup( value );
 
     printf( "TSP Server Init OK\n" );
 
