@@ -14,6 +14,10 @@
 BIN     g_binTspCert = {0,0};
 BIN     g_binTspPri = {0,0};
 
+int     g_nPort = 9020;
+int     g_nSSLPort = 9120;
+
+
 SSL_CTX *g_pSSLCTX = NULL;
 
 static char g_sConfigPath[1024];
@@ -308,9 +312,13 @@ int initServer()
 
     g_pSerialPath = JS_strdup( value );
 
-    printf( "TSP Server Init OK\n" );
+    value = JS_CFG_getValue( g_pEnvList, "TSP_PORT" );
+    if( value ) g_nPort = atoi( value );
 
+    value = JS_CFG_getValue( g_pEnvList, "TSP_SSL_PORT" );
+    if( value ) g_nSSLPort = atoi( value );
 
+    printf( "TSP Server Init OK [Port:%d SSL:%d]\n", g_nPort, g_nSSLPort );
 
     return 0;
 }
@@ -349,8 +357,8 @@ int main( int argc, char *argv[] )
     initServer();
 
     JS_THD_logInit( "./log", "tsp", 2 );
-    JS_THD_registerService( "JS_TSP", NULL, 9020, 4, NULL, TSP_Service );
-    JS_THD_registerService( "JS_TSP_SSL", NULL, 9120, 4, NULL, TSP_SSL_Service );
+    JS_THD_registerService( "JS_TSP", NULL, g_nPort, 4, NULL, TSP_Service );
+    JS_THD_registerService( "JS_TSP_SSL", NULL, g_nSSLPort, 4, NULL, TSP_SSL_Service );
     JS_THD_serviceStartAll();
 
     return 0;
