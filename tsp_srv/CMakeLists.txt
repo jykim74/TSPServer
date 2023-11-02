@@ -79,5 +79,3 @@ elseif(LINUX)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         PKILib crypto ssl ltdl sqlite3 )
 endif()
-
-# target_compile_definitions( ${PROJECT_NAME} PRIVATE USE_OCSP )

@@ -165,6 +165,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     }
 
     JS_addAudit( db, JS_GEN_KIND_TSP_SRV, JS_GEN_OP_MAKE_TSP, NULL );
+    JS_LOG_write( JS_LOG_LEVEL_INFO, "TSP success" );
 
 end :
     JS_BIN_reset( &binMsg );
