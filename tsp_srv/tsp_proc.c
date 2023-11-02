@@ -1,4 +1,6 @@
+#include "js_gen.h"
 #include "js_bin.h"
+#include "js_log.h"
 #include "js_tsp.h"
 #include "js_db.h"
 #include "tsp_srv.h"
@@ -21,6 +23,8 @@ static ASN1_INTEGER* _nextSerial( const char *pSerialFile )
 
     if( !(pIOIn = BIO_new_file(pSerialFile, "r"))) {
         fprintf( stderr, "Warning: could not open fail %s for reading, using serial number: 1\n", pSerialFile );
+        JS_LOG_write( JS_LOG_LEVEL_WARN, "Warning: could not open fail %s for reading, using serial number: 1", pSerialFile );
+
 
         if( !ASN1_INTEGER_set(serial, 1) )
             goto err;
@@ -29,6 +33,7 @@ static ASN1_INTEGER* _nextSerial( const char *pSerialFile )
 
         if( !a2i_ASN1_INTEGER( pIOIn, serial, buf, sizeof(buf))) {
             fprintf( stderr, "unable to load number from %s\n", pSerialFile );
+            JS_LOG_write( JS_LOG_LEVEL_ERROR, "unable to load number from %s", pSerialFile );
             goto err;
         }
 
@@ -79,6 +84,7 @@ err:
     if( ret != 0 )
     {
         fprintf( stderr, "could not save serial number to %s\n", pSerialFile );
+        JS_LOG_write( JS_LOG_LEVEL_ERROR, "could not save serial number to %s", pSerialFile );
     }
 
     if( out ) BIO_free_all(out);
@@ -125,7 +131,10 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     if( ret != 0 )
     {
         fprintf( stderr, "fail to decode tsp request(%d)\n", ret );
+        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to decode tsp request(%d)", ret );
+
         ret = JS_TSP_encodeFailResponse( JS_TS_STATUS_REJECTION, pRsp );
+
         goto end;
     }
 
@@ -137,6 +146,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     if( ret != 0 )
     {
         fprintf( stderr, "fail to encode tsp response(%d)\n", ret );
+        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to encode tsp response(%d)", ret );
         ret = JS_TSP_encodeFailResponse( JS_TS_STATUS_REJECTION, pRsp );
         goto end;
     }
@@ -150,8 +160,11 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     if( ret != 0 )
     {
         fprintf( stderr, "fail to add TSP to DB(%d)\n", ret );
+        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to add TSP to DB(%d)", ret );
         goto end;
     }
+
+    JS_addAudit( db, JS_GEN_KIND_TSP_SRV, JS_GEN_OP_MAKE_TSP, NULL );
 
 end :
     JS_BIN_reset( &binMsg );
