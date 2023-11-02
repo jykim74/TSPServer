@@ -14,6 +14,7 @@ add_executable(tsp_srv
 	tsp_proc.c
 	tsp_srv.c
 	tsp_srv.h
+        ../tsp_srv.cfg
 	)
 
 if(WIN32)

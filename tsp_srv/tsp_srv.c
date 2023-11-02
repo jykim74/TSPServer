@@ -8,6 +8,7 @@
 #include "js_tsp.h"
 #include "js_cfg.h"
 #include "js_db.h"
+#include "js_log.h"
 
 #include "tsp_srv.h"
 
@@ -16,6 +17,7 @@ BIN     g_binTspPri = {0,0};
 
 int     g_nPort = 9020;
 int     g_nSSLPort = 9120;
+int     g_nLogLevel = JS_LOG_LEVEL_INFO;
 
 
 SSL_CTX *g_pSSLCTX = NULL;
@@ -69,6 +71,8 @@ int TSP_Service( JThreadInfo *pThInfo )
         goto end;
     }
 
+    JS_LOG_write( JS_LOG_LEVEL_VERBOSE, "RecvBin Len: %d", binReq.nLen );
+
     if( pMethInfo ) printf( "MethInfo : %s\n", pMethInfo );
     JS_HTTP_getMethodPath( pMethInfo, &nType, &pPath, &pParamList );
 
@@ -81,8 +85,9 @@ int TSP_Service( JThreadInfo *pThInfo )
         ret = procTSP( db, &binReq, &binRsp );
         if( ret != 0 )
         {
-            fprintf( stderr, "fail procTCP(%d)\n", ret );
-           goto end;
+            fprintf( stderr, "fail procTSP(%d)\n", ret );
+            JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail procTSP(%d)", ret );
+            goto end;
         }
 
         pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
@@ -95,6 +100,7 @@ int TSP_Service( JThreadInfo *pThInfo )
     if( ret != 0 )
     {
         fprintf( stderr, "fail to send message(%d)\n", ret );
+        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to send message(%d)", ret );
         goto end;
     }
 
@@ -155,6 +161,8 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
         goto end;
     }
 
+    JS_LOG_write( JS_LOG_LEVEL_VERBOSE, "RecvBin Len: %d", binReq.nLen );
+
     if( pMethInfo ) printf( "MethInfo : %s\n", pMethInfo );
     JS_HTTP_getMethodPath( pMethInfo, &nType, &pPath, &pParamList );
 
@@ -167,8 +175,9 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
         ret = procTSP( db, &binReq, &binRsp );
         if( ret != 0 )
         {
-            fprintf( stderr, "fail procTCP(%d)\n", ret );
-           goto end;
+            fprintf( stderr, "fail procTSP(%d)\n", ret );
+            JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail procTSP(%d)", ret );
+            goto end;
         }
 
         pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
@@ -181,6 +190,7 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
     if( ret != 0 )
     {
         fprintf( stderr, "fail to send message(%d)\n", ret );
+        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to send message(%d)", ret );
         goto end;
     }
 
@@ -239,6 +249,17 @@ int initServer()
         fprintf( stderr, "fail to read ocsp private key(%s)\n", value );
         exit(0);
     }
+
+    value = JS_CFG_getValue( g_pEnvList, "LOG_LEVEL" );
+    if( value ) g_nLogLevel = atoi( value );
+
+    JS_LOG_setLevel( g_nLogLevel );
+
+    value = JS_CFG_getValue( g_pEnvList, "LOG_PATH" );
+    if( value )
+        JS_LOG_open( value, "TSP", JS_LOG_TYPE_DAILY );
+    else
+        JS_LOG_open( "log", "TSP", JS_LOG_TYPE_DAILY );
 
     BIN binSSLCA = {0,0};
     BIN binSSLCert = {0,0};
@@ -319,6 +340,7 @@ int initServer()
     if( value ) g_nSSLPort = atoi( value );
 
     printf( "TSP Server Init OK [Port:%d SSL:%d]\n", g_nPort, g_nSSLPort );
+    JS_LOG_write( JS_LOG_LEVEL_INFO, "TSP Server Init OK [Port:%d SSL:%d]", g_nPort, g_nSSLPort );
 
     return 0;
 }
