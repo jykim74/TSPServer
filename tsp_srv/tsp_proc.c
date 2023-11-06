@@ -4,10 +4,12 @@
 #include "js_tsp.h"
 #include "js_db.h"
 #include "tsp_srv.h"
+#include "js_pkcs11.h"
 #include "openssl/ts.h"
 
 extern BIN g_binTspCert;
 extern BIN g_binTspPri;
+extern  JP11_CTX        *g_pP11CTX;
 
 extern const char *g_pSerialPath;
 
@@ -138,10 +140,20 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
         goto end;
     }
 
-    ret = JS_TSP_encodeResponse(
+    if( g_pP11CTX )
+    {
+        ret = JS_TSP_encodeResponseByP11(
+            pReq, sHash, sPolicy, &g_binTspCert, &g_binTspPri, g_pP11CTX,
+            (void *)serialCallback, (void *)g_pSerialPath,
+            &nSerial, &binTST, &binP7, pRsp );
+    }
+    else
+    {
+        ret = JS_TSP_encodeResponse(
                 pReq, sHash, sPolicy, &g_binTspCert, &g_binTspPri,
                 (void *)serialCallback, (void *)g_pSerialPath,
                 &nSerial, &binTST, &binP7, pRsp );
+    }
 
     if( ret != 0 )
     {
