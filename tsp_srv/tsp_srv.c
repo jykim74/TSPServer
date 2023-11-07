@@ -31,7 +31,7 @@ int g_nVerbose = 0;
 JEnvList        *g_pEnvList = NULL;
 static char g_sBuildInfo[1024];
 const char *g_dbPath = NULL;
-const char *g_pSerialPath = NULL;
+// const char *g_pSerialPath = NULL;
 
 const char *getBuildInfo()
 {
@@ -311,6 +311,7 @@ int loginHSM()
     }
 
     printf( "HSM login ok\n" );
+    LI( "HSM Login success" );
 
     return 0;
 }
@@ -336,6 +337,8 @@ int readPriKey()
             fprintf( stderr, "fail to read private key file(%s:%d)\n", value, ret );
             exit( 0 );
         }
+
+        LI( "PrivateKey read successfully" );
     }
     else
     {
@@ -369,6 +372,8 @@ int readPriKey()
             fprintf( stderr, "invalid password (%d)\n", ret );
             exit(0);
         }
+
+        LI( "Reading encrypted private key is success" );
     }
     return 0;
 }
@@ -493,7 +498,7 @@ int initServer()
     }
 
     g_dbPath = JS_strdup( value );
-
+/*
     value = JS_CFG_getValue( g_pEnvList, "SERIAL_PATH" );
     if( value == NULL )
     {
@@ -502,7 +507,7 @@ int initServer()
     }
 
     g_pSerialPath = JS_strdup( value );
-
+*/
 
     value = JS_CFG_getValue( g_pEnvList, "TSP_PORT" );
     if( value ) g_nPort = atoi( value );

@@ -11,17 +11,20 @@ extern BIN g_binTspCert;
 extern BIN g_binTspPri;
 extern  JP11_CTX        *g_pP11CTX;
 
-extern const char *g_pSerialPath;
+// extern const char *g_pSerialPath;
 
-#if 0
+#if 1
 static ASN1_INTEGER* serialCallback( TS_RESP_CTX *ctx, void *data )
 {
     ASN1_INTEGER *pASerial = NULL;
     int nSerial = JS_DB_getNextVal( (sqlite3 *)data, "TB_SERIAL" );
-    if( nSerial <= 0 ) return NULL;
+    if( nSerial <= 0 )
+    {
+        LE( "fail to get serial value: %d", nSerial );
+        return NULL;
+    }
 
-    JS_LOG_write( JS_LOG_LEVEL_INFO, "Serial: %d", nSerial );
-
+    LI( "Serial: %d", nSerial );
     pASerial = ASN1_INTEGER_new();
 
     ASN1_INTEGER_set( pASerial, nSerial );
@@ -162,15 +165,19 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     {
         ret = JS_TSP_encodeResponseByP11(
             pReq, sHash, sPolicy, &g_binTspCert, &g_binTspPri, g_pP11CTX,
-            (void *)serialCallback, (void *)g_pSerialPath,
+            (void *)serialCallback, (void *)db,
             &nSerial, &binTST, &binP7, pRsp );
+
+        LI( "EncodeResponseByP11 Ret: %d", ret );
     }
     else
     {
         ret = JS_TSP_encodeResponse(
                 pReq, sHash, sPolicy, &g_binTspCert, &g_binTspPri,
-                (void *)serialCallback, (void *)g_pSerialPath,
+                (void *)serialCallback, (void *)db,
                 &nSerial, &binTST, &binP7, pRsp );
+
+        LI( "EncodeResponse Ret: %d", ret );
     }
 
     if( ret != 0 )
