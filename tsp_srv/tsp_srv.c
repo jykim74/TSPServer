@@ -503,6 +503,7 @@ int initServer()
 
     g_pSerialPath = JS_strdup( value );
 
+
     value = JS_CFG_getValue( g_pEnvList, "TSP_PORT" );
     if( value ) g_nPort = atoi( value );
 

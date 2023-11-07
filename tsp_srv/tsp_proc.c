@@ -13,6 +13,23 @@ extern  JP11_CTX        *g_pP11CTX;
 
 extern const char *g_pSerialPath;
 
+#if 0
+static ASN1_INTEGER* serialCallback( TS_RESP_CTX *ctx, void *data )
+{
+    ASN1_INTEGER *pASerial = NULL;
+    int nSerial = JS_DB_getNextVal( (sqlite3 *)data, "TB_SERIAL" );
+    if( nSerial <= 0 ) return NULL;
+
+    JS_LOG_write( JS_LOG_LEVEL_INFO, "Serial: %d", nSerial );
+
+    pASerial = ASN1_INTEGER_new();
+
+    ASN1_INTEGER_set( pASerial, nSerial );
+
+    return pASerial;
+}
+
+#else
 static ASN1_INTEGER* _nextSerial( const char *pSerialFile )
 {
     int ret = -1;
@@ -112,6 +129,7 @@ static ASN1_INTEGER* serialCallback( TS_RESP_CTX *ctx, void *data )
 
     return serial;
 }
+#endif
 
 int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
 {
