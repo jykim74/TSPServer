@@ -17,6 +17,7 @@
 BIN     g_binTspCert = {0,0};
 BIN     g_binTspPri = {0,0};
 JP11_CTX        *g_pP11CTX = NULL;
+int     g_nMsgDump = 0;
 
 int     g_nPort = 9020;
 int     g_nSSLPort = 9120;
@@ -391,6 +392,17 @@ int initServer()
         exit(0);
     }
 
+    value = JS_CFG_getValue( g_pEnvList, "LOG_LEVEL" );
+    if( value ) g_nLogLevel = atoi( value );
+
+    JS_LOG_setLevel( g_nLogLevel );
+
+    value = JS_CFG_getValue( g_pEnvList, "LOG_PATH" );
+    if( value )
+        JS_LOG_open( value, "TSP", JS_LOG_TYPE_DAILY );
+    else
+        JS_LOG_open( "log", "TSP", JS_LOG_TYPE_DAILY );
+
     value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_CERT_PATH" );
     if( value == NULL )
     {
@@ -425,16 +437,11 @@ int initServer()
         }
     }
 
-    value = JS_CFG_getValue( g_pEnvList, "LOG_LEVEL" );
-    if( value ) g_nLogLevel = atoi( value );
-
-    JS_LOG_setLevel( g_nLogLevel );
-
-    value = JS_CFG_getValue( g_pEnvList, "LOG_PATH" );
-    if( value )
-        JS_LOG_open( value, "TSP", JS_LOG_TYPE_DAILY );
-    else
-        JS_LOG_open( "log", "TSP", JS_LOG_TYPE_DAILY );
+    value = JS_CFG_getValue( g_pEnvList, "TSP_MSG_DUMP" );
+    if( value && strcasecmp( value, "YES") == 0 )
+    {
+        g_nMsgDump = 1;
+    }
 
     BIN binSSLCA = {0,0};
     BIN binSSLCert = {0,0};

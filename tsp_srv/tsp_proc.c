@@ -1,3 +1,7 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "js_gen.h"
 #include "js_bin.h"
 #include "js_log.h"
@@ -9,6 +13,7 @@
 
 extern BIN g_binTspCert;
 extern BIN g_binTspPri;
+extern int g_nMsgDump;
 extern  JP11_CTX        *g_pP11CTX;
 
 // extern const char *g_pSerialPath;
@@ -134,6 +139,34 @@ static ASN1_INTEGER* serialCallback( TS_RESP_CTX *ctx, void *data )
 }
 #endif
 
+int msgDump( int nIsReq, const BIN *pMsg )
+{
+    char        sSavePath[1024];
+
+    if( pMsg == NULL || pMsg->nLen <= 0 ) return -1;
+
+    if( JS_UTIL_isFolderExist( "dump" ) == 0 )
+    {
+#ifdef WIN32
+        mkdir( "dump" );
+#else
+        mkdir( "dump", 0755 );
+#endif
+    }
+
+    if( nIsReq )
+    {
+        sprintf( sSavePath, "dump/tsp_req_%d_%d.bin", time(NULL), getpid() );
+    }
+    else
+    {
+        sprintf( sSavePath, "dump/tsp_rsp_%d_%d.bin", time(NULL), getpid());
+    }
+
+
+    return JS_BIN_fileWrite( pMsg, sSavePath );
+}
+
 int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
 {
     int     ret = 0;
@@ -161,6 +194,8 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
         goto end;
     }
 
+    if( g_nMsgDump ) msgDump( 1, pReq );
+
     if( g_pP11CTX )
     {
         ret = JS_TSP_encodeResponseByP11(
@@ -186,6 +221,10 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
         JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to encode tsp response(%d)", ret );
         ret = JS_TSP_encodeFailResponse( JS_TS_STATUS_REJECTION, pRsp );
         goto end;
+    }
+    else
+    {
+        if( g_nMsgDump ) msgDump( 0, pRsp );
     }
 
     JS_BIN_encodeHex( &binTST, &pHexTSTInfo );
