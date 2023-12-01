@@ -3,6 +3,7 @@
 #include <string.h>
 #include <getopt.h>
 
+#include "js_gen.h"
 #include "js_process.h"
 #include "js_http.h"
 #include "js_tsp.h"
@@ -26,13 +27,13 @@ int     g_nLogLevel = JS_LOG_LEVEL_INFO;
 
 SSL_CTX *g_pSSLCTX = NULL;
 
-
+int     g_nConfigDB = 0;
 static char g_sConfigPath[1024];
 int g_nVerbose = 0;
 JEnvList        *g_pEnvList = NULL;
 static char g_sBuildInfo[1024];
 const char *g_dbPath = NULL;
-// const char *g_pSerialPath = NULL;
+
 
 const char *getBuildInfo()
 {
@@ -317,6 +318,71 @@ int loginHSM()
     return 0;
 }
 
+int readPriKeyDB( sqlite3 *db )
+{
+    int ret = 0;
+    const char *value = NULL;
+    JDB_KeyPair sKeyPair;
+
+    memset( &sKeyPair, 0x00, sizeof(sKeyPair));
+
+    value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_NUM" );
+    if( value == NULL )
+    {
+        fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_NUM'" );
+        exit(0);
+    }
+
+    ret = JS_DB_getKeyPair(db, atoi(value), &sKeyPair );
+    if( ret != 1 )
+    {
+        fprintf( stderr, "There is no key pair: %d\r\n", atoi(value));
+        exit(0);
+    }
+
+    // 암호화 경우 복호화 필요함
+    value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_ENC" );
+
+    if( value && strcasecmp( value, "NO" ) == 0 )
+    {
+        JS_BIN_decodeHex( sKeyPair.pPrivate, &g_binTspPri );
+
+        if( ret <= 0 )
+        {
+            fprintf( stderr, "fail to read private key file(%s:%d)\n", value, ret );
+            exit( 0 );
+        }
+    }
+    else
+    {
+        BIN binEnc = {0,0};
+        const char *pPasswd = NULL;
+
+        pPasswd = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
+        if( pPasswd == NULL )
+        {
+            fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_PASSWD'\n" );
+            exit(0);
+        }
+
+        JS_BIN_decodeHex( sKeyPair.pPrivate, &binEnc );
+
+        ret = JS_PKI_decryptPrivateKey( pPasswd, &binEnc, NULL, &g_binTspPri );
+        if( ret != 0 )
+        {
+            fprintf( stderr, "invalid password (%d)\n", ret );
+            exit(0);
+        }
+
+        JS_BIN_reset( &binEnc );
+    }
+
+    JS_DB_resetKeyPair( &sKeyPair );
+
+    return 0;
+}
+
+
 int readPriKey()
 {
     int ret = 0;
@@ -380,17 +446,10 @@ int readPriKey()
 }
 
 
-int initServer()
+int initServer( sqlite3 *db )
 {
     int ret = 0;
     const char *value = NULL;
-
-    ret = JS_CFG_readConfig( g_sConfigPath, &g_pEnvList );
-    if( ret != 0 )
-    {
-        fprintf( stderr, "fail to open config file(%s)\n", g_sConfigPath );
-        exit(0);
-    }
 
     value = JS_CFG_getValue( g_pEnvList, "LOG_LEVEL" );
     if( value ) g_nLogLevel = atoi( value );
@@ -403,18 +462,38 @@ int initServer()
     else
         JS_LOG_open( "log", "TSP", JS_LOG_TYPE_DAILY );
 
-    value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_CERT_PATH" );
-    if( value == NULL )
+    if( g_nConfigDB == 1 )
     {
-        fprintf( stderr, "You have to set 'TSP_SRV_CERT_PATH'\n" );
-        exit(0);
-    }
+        JDB_Cert sCert;
+        memset( &sCert, 0x00, sizeof(sCert));
 
-    ret = JS_BIN_fileReadBER( value, &g_binTspCert );
-    if( ret <= 0 )
+        value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_CERT_NUM" );
+        if( value == NULL )
+        {
+            fprintf( stderr, "You have to set 'TSSP_SRV_CERT_NUM'\n" );
+            exit(0);
+        }
+
+        JS_DB_getCert( db, atoi(value), &sCert );
+        ret = JS_BIN_decodeHex( sCert.pCert, &g_binTspCert );
+
+        JS_DB_resetCert( &sCert );
+    }
+    else
     {
-        fprintf( stderr, "fail to read tsp srv cert(%s)\n", value );
-        exit(0);
+        value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_CERT_PATH" );
+        if( value == NULL )
+        {
+            fprintf( stderr, "You have to set 'TSP_SRV_CERT_PATH'\n" );
+            exit(0);
+        }
+
+        ret = JS_BIN_fileReadBER( value, &g_binTspCert );
+        if( ret <= 0 )
+        {
+            fprintf( stderr, "fail to read tsp srv cert(%s)\n", value );
+            exit(0);
+        }
     }
 
     value = JS_CFG_getValue( g_pEnvList, "TSP_HSM_USE" );
@@ -429,7 +508,15 @@ int initServer()
     }
     else
     {
-        ret = readPriKey();
+        if( g_nConfigDB == 1 )
+        {
+            ret = readPriKeyDB( db );
+        }
+        else
+        {
+            ret = readPriKey();
+        }
+
         if( ret != 0 )
         {
             fprintf( stderr, "fail to read private key:%d\n", ret );
@@ -497,24 +584,22 @@ int initServer()
     JS_BIN_reset( &binSSLCert );
     JS_BIN_reset( &binSSLPri );
 
-    value = JS_CFG_getValue( g_pEnvList, "DB_PATH" );
-    if( value == NULL )
+    if( g_dbPath == NULL && g_nConfigDB == 0 )
     {
-        fprintf( stderr, "You have to set 'DB_PATH'\n" );
-        exit(0);
-    }
+        value = JS_CFG_getValue( g_pEnvList, "DB_PATH" );
+        if( value == NULL )
+        {
+            fprintf( stderr, "You have to set 'DB_PATH'\n" );
+            exit(0);
+        }
 
-    g_dbPath = JS_strdup( value );
-/*
-    value = JS_CFG_getValue( g_pEnvList, "SERIAL_PATH" );
-    if( value == NULL )
-    {
-        fprintf( stderr, "You have to set 'SERIAL_PATH'\n" );
-        exit(0);
+        g_dbPath = JS_strdup( value );
+        if( JS_UTIL_isFileExist( g_dbPath ) == 0 )
+        {
+            fprintf( stderr, "The data file is no exist[%s]\n", g_dbPath );
+            exit(0);
+        }
     }
-
-    g_pSerialPath = JS_strdup( value );
-*/
 
     value = JS_CFG_getValue( g_pEnvList, "TSP_PORT" );
     if( value ) g_nPort = atoi( value );
@@ -534,12 +619,16 @@ void printUsage()
     printf( "[Options]\n" );
     printf( "-v         : Verbose on(%d)\n", g_nVerbose );
     printf( "-c config : set config file(%s)\n", g_sConfigPath );
+    printf( "-d dbfile  : Use DB config(%d)\n", g_nConfigDB );
     printf( "-h         : Print this message\n" );
 }
 
 int main( int argc, char *argv[] )
 {
+    int ret = 0;
     int nOpt = 0;
+    sqlite3* db = NULL;
+
     sprintf( g_sConfigPath, "%s", "../tsp_srv.cfg" );
 
     while(( nOpt = getopt( argc, argv, "c:vh")) != -1 )
@@ -556,10 +645,60 @@ int main( int argc, char *argv[] )
         case 'c':
             sprintf( g_sConfigPath, "%s", optarg );
             break;
+
+        case 'd' :
+            g_dbPath = JS_strdup( optarg );
+            g_nConfigDB = 1;
+            break;
         }
     }
 
-    initServer();
+
+    if( g_nConfigDB == 1 )
+    {
+        JDB_ConfigList *pConfigList = NULL;
+
+        if( JS_UTIL_isFileExist( g_dbPath ) == 0 )
+        {
+            fprintf( stderr, "The data file is no exist[%s]\n", g_dbPath );
+            exit(0);
+        }
+
+        db = JS_DB_open( g_dbPath );
+        if( db == NULL )
+        {
+            fprintf( stderr, "fail to open db file(%s)\n", g_dbPath );
+            exit(0);
+        }
+
+        ret = JS_DB_getConfigListByKind( db, JS_GEN_KIND_TSP_SRV, &pConfigList );
+
+        ret = JS_CFG_readConfigFromDB( pConfigList, &g_pEnvList );
+        if( ret != 0 )
+        {
+            fprintf( stderr, "fail to open config file(%s)\n", g_sConfigPath );
+            exit(0);
+        }
+
+
+        if( pConfigList ) JS_DB_resetConfigList( &pConfigList );
+    }
+    else
+    {
+        ret = JS_CFG_readConfig( g_sConfigPath, &g_pEnvList );
+        if( ret != 0 )
+        {
+            fprintf( stderr, "fail to open config file(%s)\n", g_sConfigPath );
+            exit(0);
+        }
+    }
+
+    initServer( db );
+
+    if( g_nConfigDB == 1 )
+    {
+        if( db ) JS_DB_close( db );
+    }
 
     JS_THD_logInit( "./log", "tsp", 2 );
     JS_THD_registerService( "JS_TSP", NULL, g_nPort, 4, NULL, TSP_Service );
