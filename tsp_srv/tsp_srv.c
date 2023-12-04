@@ -631,7 +631,7 @@ int main( int argc, char *argv[] )
 
     sprintf( g_sConfigPath, "%s", "../tsp_srv.cfg" );
 
-    while(( nOpt = getopt( argc, argv, "c:vh")) != -1 )
+    while(( nOpt = getopt( argc, argv, "c:d:vh")) != -1 )
     {
         switch( nOpt ) {
         case 'h':
