@@ -60,12 +60,12 @@ int TSP_Service( JThreadInfo *pThInfo )
     char            *pPath = NULL;
     int             nType = -1;
 
-    printf( "Service start\n" );
+    LI( "Service start" );
 
     sqlite3* db = JS_DB_open( g_dbPath );
     if( db == NULL )
     {
-        fprintf( stderr, "fail to open db file(%s)\n", g_dbPath );
+        LE( "fail to open db file(%s)", g_dbPath );
         ret = -1;
         goto end;
     }
@@ -73,13 +73,13 @@ int TSP_Service( JThreadInfo *pThInfo )
     ret = JS_HTTP_recvBin( pThInfo->nSockFd, &pMethInfo, &pHeaderList, &binReq );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to receive message(%d)\n", ret );
+        LE( "fail to receive message(%d)", ret );
         goto end;
     }
 
-    JS_LOG_write( JS_LOG_LEVEL_VERBOSE, "RecvBin Len: %d", binReq.nLen );
+    LV( "RecvBin Len: %d", binReq.nLen );
 
-    if( pMethInfo ) printf( "MethInfo : %s\n", pMethInfo );
+    if( pMethInfo ) LI( "MethInfo : %s", pMethInfo );
     JS_HTTP_getMethodPath( pMethInfo, &nType, &pPath, &pParamList );
 
     if( strcasecmp( pPath, "/PING" ) == 0 )
@@ -91,8 +91,7 @@ int TSP_Service( JThreadInfo *pThInfo )
         ret = procTSP( db, &binReq, &binRsp );
         if( ret != 0 )
         {
-            fprintf( stderr, "fail procTSP(%d)\n", ret );
-            JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail procTSP(%d)", ret );
+            LE( "fail procTSP(%d)", ret );
             goto end;
         }
 
@@ -105,8 +104,7 @@ int TSP_Service( JThreadInfo *pThInfo )
     ret = JS_HTTP_sendBin( pThInfo->nSockFd, pMethod, pRspHeaderList, &binRsp );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to send message(%d)\n", ret );
-        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to send message(%d)", ret );
+        LE( "fail to send message(%d)", ret );
         goto end;
     }
 
@@ -143,12 +141,12 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
     int             nType = -1;
     SSL             *pSSL = NULL;
 
-    printf( "SSL Service start\n" );
+    LI( "SSL Service start" );
 
     sqlite3* db = JS_DB_open( g_dbPath );
     if( db == NULL )
     {
-        fprintf( stderr, "fail to open db file(%s)\n", g_dbPath );
+        LE( "fail to open db file(%s)", g_dbPath );
         ret = -1;
         goto end;
     }
@@ -156,20 +154,20 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
     ret = JS_SSL_accept( g_pSSLCTX, pThInfo->nSockFd, &pSSL );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to accept SSL(%d)\n", ret );
+        LE( "fail to accept SSL(%d)", ret );
         goto end;
     }
 
     ret = JS_HTTPS_recvBin( pSSL, &pMethInfo, &pHeaderList, &binReq );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to receive message(%d)\n", ret );
+        LE( "fail to receive message(%d)", ret );
         goto end;
     }
 
-    JS_LOG_write( JS_LOG_LEVEL_VERBOSE, "RecvBin Len: %d", binReq.nLen );
+    LV( "RecvBin Len: %d", binReq.nLen );
 
-    if( pMethInfo ) printf( "MethInfo : %s\n", pMethInfo );
+    if( pMethInfo ) LI( "MethInfo : %s", pMethInfo );
     JS_HTTP_getMethodPath( pMethInfo, &nType, &pPath, &pParamList );
 
     if( strcasecmp( pPath, "/PING" ) == 0 )
@@ -181,8 +179,7 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
         ret = procTSP( db, &binReq, &binRsp );
         if( ret != 0 )
         {
-            fprintf( stderr, "fail procTSP(%d)\n", ret );
-            JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail procTSP(%d)", ret );
+            LE( "fail procTSP(%d)", ret );
             goto end;
         }
 
@@ -195,8 +192,7 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
     ret = JS_HTTPS_sendBin( pSSL, pMethod, pRspHeaderList, &binRsp );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to send message(%d)\n", ret );
-        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to send message(%d)", ret );
+        LE( "fail to send message(%d)", ret );
         goto end;
     }
 
@@ -240,15 +236,15 @@ int loginHSM()
     pLibPath = JS_CFG_getValue( g_pEnvList, "TSP_HSM_LIB_PATH" );
     if( pLibPath == NULL )
     {
-        fprintf( stderr, "You have to set 'TSP_HSM_LIB_PATH'\n" );
-        exit(0);
+        LE( "You have to set 'TSP_HSM_LIB_PATH'" );
+        return -1;
     }
 
     value = JS_CFG_getValue( g_pEnvList, "TSP_HSM_SLOT_ID" );
     if( value == NULL )
     {
-        fprintf( stderr, "You have to set 'TSP_HSM_SLOT_ID'\n" );
-        exit(0);
+        LE( "You have to set 'TSP_HSM_SLOT_ID'" );
+        return -1;
     }
 
     nSlotID = atoi( value );
@@ -256,8 +252,8 @@ int loginHSM()
     pPIN = JS_CFG_getValue( g_pEnvList, "TSP_HSM_PIN" );
     if( pPIN == NULL )
     {
-        fprintf( stderr, "You have to set 'TSP_HSM_PIN'\n" );
-        exit(0);
+        LE( "You have to set 'TSP_HSM_PIN'" );
+        return -1;
     }
 
     nPINLen = atoi( pPIN );
@@ -265,8 +261,8 @@ int loginHSM()
     value = JS_CFG_getValue( g_pEnvList, "TSP_HSM_KEY_ID" );
     if( value == NULL )
     {
-        fprintf( stderr, "You have to set 'TSP_HSM_KEY_ID'\n" );
-        exit( 0);
+        LE( "You have to set 'TSP_HSM_KEY_ID'" );
+        return -1;
     }
 
     JS_BIN_decodeHex( value, &g_binTspPri );
@@ -274,45 +270,44 @@ int loginHSM()
     ret = JS_PKCS11_LoadLibrary( &g_pP11CTX, pLibPath );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to load library(%s:%d)\n", value, ret );
-        exit(0);
+        LE( "fail to load library(%s:%d)", value, ret );
+        return -2;
     }
 
     ret = JS_PKCS11_Initialize( g_pP11CTX, NULL );
     if( ret != CKR_OK )
     {
-        fprintf( stderr, "fail to run initialize(%d)\n", ret );
-        return -1;
+        LE( "fail to run initialize(%d)", ret );
+        return -2;
     }
 
     ret = JS_PKCS11_GetSlotList2( g_pP11CTX, CK_TRUE, sSlotList, &uSlotCnt );
     if( ret != CKR_OK )
     {
-        fprintf( stderr, "fail to run getSlotList fail(%d)\n", ret );
-        return -1;
+        LE( "fail to run getSlotList fail(%d)", ret );
+        return -2;
     }
 
     if( uSlotCnt < 1 )
     {
-        fprintf( stderr, "there is no slot(%d)\n", uSlotCnt );
-        return -1;
+        LE( "there is no slot(%d)", uSlotCnt );
+        return -2;
     }
 
     ret = JS_PKCS11_OpenSession( g_pP11CTX, sSlotList[nSlotID], nFlags );
     if( ret != CKR_OK )
     {
-        fprintf( stderr, "fail to run opensession(%s:%x)\n", JS_PKCS11_GetErrorMsg(ret), ret );
+        LE( "fail to run opensession(%s:%x)", JS_PKCS11_GetErrorMsg(ret), ret );
         return -1;
     }
 
     ret = JS_PKCS11_Login( g_pP11CTX, nUserType, pPIN, nPINLen );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to run login hsm(%d)\n", ret );
+        LE( "fail to run login hsm(%d)", ret );
         return -1;
     }
 
-    printf( "HSM login ok\n" );
     LI( "HSM Login success" );
 
     return 0;
@@ -329,15 +324,15 @@ int readPriKeyDB( sqlite3 *db )
     value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_NUM" );
     if( value == NULL )
     {
-        fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_NUM'" );
-        exit(0);
+        LE( "You have to set 'TSP_SRV_PRIKEY_NUM'" );
+        return -1;
     }
 
     ret = JS_DB_getKeyPair(db, atoi(value), &sKeyPair );
     if( ret != 1 )
     {
-        fprintf( stderr, "There is no key pair: %d\r\n", atoi(value));
-        exit(0);
+        LE( "There is no key pair: %d", atoi(value));
+        return -1;
     }
 
     // 암호화 경우 복호화 필요함
@@ -349,8 +344,8 @@ int readPriKeyDB( sqlite3 *db )
 
         if( ret <= 0 )
         {
-            fprintf( stderr, "fail to read private key file(%s:%d)\n", value, ret );
-            exit( 0 );
+            LE( "fail to read private key file(%s:%d)", value, ret );
+            return -2;
         }
     }
     else
@@ -361,8 +356,8 @@ int readPriKeyDB( sqlite3 *db )
         pPasswd = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
         if( pPasswd == NULL )
         {
-            fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_PASSWD'\n" );
-            exit(0);
+            LE( "You have to set 'TSP_SRV_PRIKEY_PASSWD'" );
+            return -3;
         }
 
         JS_BIN_decodeHex( sKeyPair.pPrivate, &binEnc );
@@ -370,8 +365,8 @@ int readPriKeyDB( sqlite3 *db )
         ret = JS_PKI_decryptPrivateKey( pPasswd, &binEnc, NULL, &g_binTspPri );
         if( ret != 0 )
         {
-            fprintf( stderr, "invalid password (%d)\n", ret );
-            exit(0);
+            LE( "invalid password (%d)", ret );
+            return -3;
         }
 
         JS_BIN_reset( &binEnc );
@@ -394,15 +389,15 @@ int readPriKey()
         value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PATH" );
         if( value == NULL )
         {
-            fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_PATH'" );
-            exit(0);
+            LE( "You have to set 'TSP_SRV_PRIKEY_PATH'" );
+            return -1;
         }
 
         ret = JS_BIN_fileReadBER( value, &g_binTspPri );
         if( ret <= 0 )
         {
-            fprintf( stderr, "fail to read private key file(%s:%d)\n", value, ret );
-            exit( 0 );
+            LE( "fail to read private key file(%s:%d)", value, ret );
+            return -1;
         }
 
         LI( "PrivateKey read successfully" );
@@ -415,33 +410,34 @@ int readPriKey()
         pPasswd = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
         if( pPasswd == NULL )
         {
-            fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_PASSWD'\n" );
-            exit(0);
+            LE( "You have to set 'TSP_SRV_PRIKEY_PASSWD'" );
+            return -2;
         }
 
         value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PATH" );
         if( value == NULL )
         {
-            fprintf( stderr, "You have to set 'TSP_SRV_PRIKEY_PATH'" );
-            exit(0);
+            LE( "You have to set 'TSP_SRV_PRIKEY_PATH'" );
+            return -2;
         }
 
         ret = JS_BIN_fileReadBER( value, &binEnc );
         if( ret <= 0 )
         {
-            fprintf( stderr, "fail to read private key file(%s:%d)\n", value, ret );
-            exit( 0 );
+            LE( "fail to read private key file(%s:%d)", value, ret );
+            return -2;
         }
 
         ret = JS_PKI_decryptPrivateKey( pPasswd, &binEnc, NULL, &g_binTspPri );
         if( ret != 0 )
         {
-            fprintf( stderr, "invalid password (%d)\n", ret );
-            exit(0);
+            LE( "invalid password (%d)", ret );
+            return -2;
         }
 
         LI( "Reading encrypted private key is success" );
     }
+
     return 0;
 }
 
@@ -470,8 +466,8 @@ int initServer( sqlite3 *db )
         value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_CERT_NUM" );
         if( value == NULL )
         {
-            fprintf( stderr, "You have to set 'TSSP_SRV_CERT_NUM'\n" );
-            exit(0);
+            LE( "You have to set 'TSSP_SRV_CERT_NUM'" );
+            return -1;
         }
 
         JS_DB_getCert( db, atoi(value), &sCert );
@@ -484,15 +480,15 @@ int initServer( sqlite3 *db )
         value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_CERT_PATH" );
         if( value == NULL )
         {
-            fprintf( stderr, "You have to set 'TSP_SRV_CERT_PATH'\n" );
-            exit(0);
+            LE( "You have to set 'TSP_SRV_CERT_PATH'" );
+            return -1;
         }
 
         ret = JS_BIN_fileReadBER( value, &g_binTspCert );
         if( ret <= 0 )
         {
-            fprintf( stderr, "fail to read tsp srv cert(%s)\n", value );
-            exit(0);
+            LE( "fail to read tsp srv cert(%s)", value );
+            return -1;
         }
     }
 
@@ -502,8 +498,8 @@ int initServer( sqlite3 *db )
         ret = loginHSM();
         if( ret != 0 )
         {
-            fprintf( stderr, "fail to login HSM:%d\n", ret );
-            exit(0);
+            LE( "fail to login HSM:%d", ret );
+            return -2;
         }
     }
     else
@@ -519,8 +515,8 @@ int initServer( sqlite3 *db )
 
         if( ret != 0 )
         {
-            fprintf( stderr, "fail to read private key:%d\n", ret );
-            exit( 0 );
+            LE( "fail to read private key:%d", ret );
+            return -2;
         }
     }
 
@@ -537,43 +533,43 @@ int initServer( sqlite3 *db )
     value = JS_CFG_getValue( g_pEnvList, "SSL_CA_CERT_PATH" );
     if( value == NULL )
     {
-        fprintf( stderr, "You have to set 'SSL_CA_CERT_PATH'\n" );
-        exit(0);
+        LE( "You have to set 'SSL_CA_CERT_PATH'" );
+        return -3;
     }
 
     ret = JS_BIN_fileReadBER( value, &binSSLCA );
     if( ret <= 0 )
     {
-        fprintf( stderr, "fail to read ssl ca cert(%s)\n", value );
-        exit(0);
+        LE( "fail to read ssl ca cert(%s)", value );
+        return -3;
     }
 
     value = JS_CFG_getValue( g_pEnvList, "SSL_CERT_PATH" );
     if( value == NULL )
     {
-        fprintf( stderr, "You have to set 'SSL_CERT_PATH'\n" );
-        exit(0);
+        LE( "You have to set 'SSL_CERT_PATH'" );
+        return -3;
     }
 
     ret = JS_BIN_fileReadBER( value, &binSSLCert );
     if( ret <= 0 )
     {
-        fprintf( stderr, "fail to read ssl cert(%s)\n", value );
-        exit(0);
+        LE( "fail to read ssl cert(%s)", value );
+        return -3;
     }
 
     value = JS_CFG_getValue( g_pEnvList, "SSL_PRIKEY_PATH" );
     if( value == NULL )
     {
-        fprintf( stderr, "You have to set 'SSL_PRIKEY_PATH'\n" );
-        exit(0);
+        LE( "You have to set 'SSL_PRIKEY_PATH'" );
+        return -3;
     }
 
     ret = JS_BIN_fileReadBER( value, &binSSLPri );
     if( ret <= 0 )
     {
-        fprintf( stderr, "fail to read ssl private key(%s)\n", value );
-        exit(0);
+        LE( "fail to read ssl private key(%s)", value );
+        return -3;
     }
 
     JS_SSL_initServer( &g_pSSLCTX );
@@ -589,15 +585,15 @@ int initServer( sqlite3 *db )
         value = JS_CFG_getValue( g_pEnvList, "DB_PATH" );
         if( value == NULL )
         {
-            fprintf( stderr, "You have to set 'DB_PATH'\n" );
-            exit(0);
+            LE( "You have to set 'DB_PATH'" );
+            return -4;
         }
 
         g_dbPath = JS_strdup( value );
         if( JS_UTIL_isFileExist( g_dbPath ) == 0 )
         {
-            fprintf( stderr, "The data file is no exist[%s]\n", g_dbPath );
-            exit(0);
+            LE( "The data file is no exist[%s]", g_dbPath );
+            return -4;
         }
     }
 
@@ -693,7 +689,12 @@ int main( int argc, char *argv[] )
         }
     }
 
-    initServer( db );
+    ret = initServer( db );
+    if( ret != 0 )
+    {
+        LE( "fail to initialize server: %d", ret );
+        exit( 0 );
+    }
 
     if( g_nConfigDB == 1 )
     {
