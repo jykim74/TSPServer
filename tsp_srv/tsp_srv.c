@@ -20,8 +20,8 @@ BIN     g_binTspPri = {0,0};
 JP11_CTX        *g_pP11CTX = NULL;
 int     g_nMsgDump = 0;
 
-int     g_nPort = 9020;
-int     g_nSSLPort = 9120;
+int     g_nPort = JS_TSP_PORT;
+int     g_nSSLPort = JS_TSP_SSL_PORT;
 int     g_nLogLevel = JS_LOG_LEVEL_INFO;
 
 
@@ -702,8 +702,9 @@ int main( int argc, char *argv[] )
     }
 
     JS_THD_logInit( "./log", "tsp", 2 );
-    JS_THD_registerService( "JS_TSP", NULL, g_nPort, 4, NULL, TSP_Service );
-    JS_THD_registerService( "JS_TSP_SSL", NULL, g_nSSLPort, 4, NULL, TSP_SSL_Service );
+    JS_THD_registerService( "JS_TSP", NULL, g_nPort, 4, TSP_Service );
+    JS_THD_registerService( "JS_TSP_SSL", NULL, g_nSSLPort, 4, TSP_SSL_Service );
+    JS_THD_registerAdmin( NULL, g_nPort + 10 );
     JS_THD_serviceStartAll();
 
     return 0;
