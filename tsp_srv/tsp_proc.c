@@ -186,9 +186,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     ret = JS_TSP_decodeRequest( pReq, &binMsg, sHash, sPolicy );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to decode tsp request(%d)\n", ret );
-        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to decode tsp request(%d)", ret );
-
+        LE( "fail to decode tsp request(%d)", ret );
         ret = JS_TSP_encodeFailResponse( JS_TS_STATUS_REJECTION, pRsp );
 
         goto end;
@@ -217,8 +215,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
 
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to encode tsp response(%d)\n", ret );
-        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to encode tsp response(%d)", ret );
+        LE( "fail to encode tsp response(%d)", ret );
         ret = JS_TSP_encodeFailResponse( JS_TS_STATUS_REJECTION, pRsp );
         goto end;
     }
@@ -235,13 +232,12 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     ret = JS_DB_addTSP( db, &sTSP );
     if( ret != 0 )
     {
-        fprintf( stderr, "fail to add TSP to DB(%d)\n", ret );
-        JS_LOG_write( JS_LOG_LEVEL_ERROR, "fail to add TSP to DB(%d)", ret );
+        LE( "fail to add TSP to DB(%d)", ret );
         goto end;
     }
 
     JS_addAudit( db, JS_GEN_KIND_TSP_SRV, JS_GEN_OP_MAKE_TSP, NULL );
-    JS_LOG_write( JS_LOG_LEVEL_INFO, "TSP success" );
+    LI( "TSP success" );
 
 end :
     JS_BIN_reset( &binMsg );
