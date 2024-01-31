@@ -96,6 +96,12 @@ int TSP_Service( JThreadInfo *pThInfo )
 
         pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
     }
+    else
+    {
+        ret = -1;
+        LE( "Invalid URL: %s", pPath );
+        goto end;
+    }
 
     JS_UTIL_createNameValList2("accept", "application/tsp-response", &pRspHeaderList);
     JS_UTIL_appendNameValList2( pRspHeaderList, "content-type", "application/tps-response");
@@ -183,6 +189,12 @@ int TSP_SSL_Service( JThreadInfo *pThInfo )
         }
 
         pMethod = JS_HTTP_getStatusMsg( JS_HTTP_STATUS_OK );
+    }
+    else
+    {
+        ret = -1;
+        LE( "Invalid URL: %s", pPath );
+        goto end;
     }
 
     JS_UTIL_createNameValList2("accept", "application/tsp-response", &pRspHeaderList);
