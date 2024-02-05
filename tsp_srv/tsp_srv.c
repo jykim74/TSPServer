@@ -240,9 +240,10 @@ int loginHSM()
 
     int nSlotID = -1;
     const char *pLibPath = NULL;
-    const char *pPIN = NULL;
-    int nPINLen = 0;
+    char sPIN[1024];
     const char *value = NULL;
+
+    memset( sPIN, 0x00, sizeof(sPIN));
 
     pLibPath = JS_CFG_getValue( g_pEnvList, "TSP_HSM_LIB_PATH" );
     if( pLibPath == NULL )
@@ -260,14 +261,21 @@ int loginHSM()
 
     nSlotID = atoi( value );
 
-    pPIN = JS_CFG_getValue( g_pEnvList, "TSP_HSM_PIN" );
-    if( pPIN == NULL )
+    value = JS_CFG_getValue( g_pEnvList, "TSP_HSM_PIN" );
+    if( value == NULL )
     {
         LE( "You have to set 'TSP_HSM_PIN'" );
         return -1;
     }
 
-    nPINLen = atoi( pPIN );
+    if( strncasecmp( value, "{ENC}", 5 ) == 0 )
+    {
+        JS_GEN_decPassword( value, sPIN );
+    }
+    else
+    {
+        memcpy( sPIN, value, strlen(value) );
+    }
 
     value = JS_CFG_getValue( g_pEnvList, "TSP_HSM_KEY_ID" );
     if( value == NULL )
@@ -312,7 +320,7 @@ int loginHSM()
         return -1;
     }
 
-    ret = JS_PKCS11_Login( g_pP11CTX, nUserType, pPIN, nPINLen );
+    ret = JS_PKCS11_Login( g_pP11CTX, nUserType, sPIN, strlen(sPIN) );
     if( ret != 0 )
     {
         LE( "fail to run login hsm(%d)", ret );
@@ -362,18 +370,29 @@ int readPriKeyDB( sqlite3 *db )
     else
     {
         BIN binEnc = {0,0};
-        const char *pPasswd = NULL;
+        char sPasswd[1024];
 
-        pPasswd = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
-        if( pPasswd == NULL )
+        memset( sPasswd, 0x00, sizeof(sPasswd));
+
+        value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
+        if( value == NULL )
         {
             LE( "You have to set 'TSP_SRV_PRIKEY_PASSWD'" );
             return -3;
         }
 
+        if( strncasecmp( value, "{ENC}", 5 ) == 0 )
+        {
+            JS_GEN_decPassword( value, sPasswd );
+        }
+        else
+        {
+            memcpy( sPasswd, value, strlen(value));
+        }
+
         JS_BIN_decodeHex( sKeyPair.pPrivate, &binEnc );
 
-        ret = JS_PKI_decryptPrivateKey( pPasswd, &binEnc, NULL, &g_binTspPri );
+        ret = JS_PKI_decryptPrivateKey( sPasswd, &binEnc, NULL, &g_binTspPri );
         if( ret != 0 )
         {
             LE( "invalid password (%d)", ret );
@@ -416,13 +435,24 @@ int readPriKey()
     else
     {
         BIN binEnc = {0,0};
-        const char *pPasswd = NULL;
+        char sPasswd[1024];
 
-        pPasswd = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
-        if( pPasswd == NULL )
+        memset( sPasswd, 0x00, sizeof(sPasswd));
+
+        value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
+        if( value == NULL )
         {
             LE( "You have to set 'TSP_SRV_PRIKEY_PASSWD'" );
             return -2;
+        }
+
+        if( strncasecmp( value, "{ENC}", 5 ) == 0 )
+        {
+            JS_GEN_decPassword( value, sPasswd );
+        }
+        else
+        {
+            memcpy( sPasswd, value, strlen(value));
         }
 
         value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PATH" );
@@ -439,7 +469,7 @@ int readPriKey()
             return -2;
         }
 
-        ret = JS_PKI_decryptPrivateKey( pPasswd, &binEnc, NULL, &g_binTspPri );
+        ret = JS_PKI_decryptPrivateKey( sPasswd, &binEnc, NULL, &g_binTspPri );
         if( ret != 0 )
         {
             LE( "invalid password (%d)", ret );
