@@ -19,21 +19,20 @@ add_executable(tsp_srv
 
 if(WIN32)
     include_directories( ../../PKILib
-        "c:/msys64/mingw64/include"
-        ../../PKILib/lib/win64/winsparkle/include )
+        "c:/msys64/mingw64/include" )
 
     if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
+        MESSAGE( STATUS "Debug" )
         target_link_directories( ${PROJECT_NAME} PRIVATE
         ../../build-PKILib-Desktop_Qt_5_13_2_MinGW_64_bit-Debug
         ../../lib/win64/debug/openssl3/lib64
         ../../lib/win64 )
-#        "C:/msys64/mingw64/lib" )
     elseif( CMAKE_BUILD_TYPE STREQUAL "Release" )
+        MESSAGE( STATUS "Release" )
         target_link_directories( ${PROJECT_NAME} PRIVATE
         ../../build-PKILib-Desktop_Qt_5_13_2_MinGW_64_bit-Release
         ../../lib/win64/openssl3/lib64
         ../../lib/win64 )
-#        "C:/msys64/mingw64/lib" )
     endif()
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
