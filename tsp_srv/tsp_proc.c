@@ -182,6 +182,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     char *pHexData = NULL;
 
     memset( &sTSP, 0x00, sizeof(sTSP));
+    memset( sPolicy, 0x00, sizeof(sPolicy));
 
     ret = JS_TSP_decodeRequest( pReq, &binMsg, sHash, sPolicy );
     if( ret != 0 )
