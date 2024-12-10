@@ -264,17 +264,21 @@ int loginHSM()
     value = JS_CFG_getValue( g_pEnvList, "TSP_HSM_PIN" );
     if( value == NULL )
     {
-        LE( "You have to set 'TSP_HSM_PIN'" );
-        return -1;
+        ret = JS_GEN_getPassword( sPIN );
+        if( ret != 0 )
+        {
+            LE( "You have to set 'TSP_HSM_PIN'" );
+            return -1;
+        }
+    }
+    else
+    {
+        memcpy( sPIN, value, strlen(value));
     }
 
     if( strncasecmp( value, "{ENC}", 5 ) == 0 )
     {
-        JS_GEN_decPassword( value, sPIN );
-    }
-    else
-    {
-        memcpy( sPIN, value, strlen(value) );
+        JS_GEN_decPassword( sPIN, sPIN );
     }
 
     value = JS_CFG_getValue( g_pEnvList, "TSP_HSM_KEY_ID" );
@@ -442,17 +446,21 @@ int readPriKey()
         value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PASSWD" );
         if( value == NULL )
         {
-            LE( "You have to set 'TSP_SRV_PRIKEY_PASSWD'" );
-            return -2;
-        }
-
-        if( strncasecmp( value, "{ENC}", 5 ) == 0 )
-        {
-            JS_GEN_decPassword( value, sPasswd );
+            ret = JS_GEN_getPassword( sPasswd );
+            if( ret != 0 )
+            {
+                LE( "You have to set 'TSP_SRV_PRIKEY_PASSWD'" );
+                return -2;
+            }
         }
         else
         {
             memcpy( sPasswd, value, strlen(value));
+        }
+
+        if( strncasecmp( sPasswd, "{ENC}", 5 ) == 0 )
+        {
+            JS_GEN_decPassword( sPasswd, sPasswd );
         }
 
         value = JS_CFG_getValue( g_pEnvList, "TSP_SRV_PRIKEY_PATH" );
