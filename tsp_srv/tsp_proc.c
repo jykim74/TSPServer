@@ -171,6 +171,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
 {
     int     ret = 0;
     BIN     binMsg = {0,0};
+    BIN     binNonce = {0,0};
     char    sHash[1024];
     char    sPolicy[1024];
 //    const char *pPath = "D:/data/tsaserial";
@@ -184,7 +185,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
     memset( &sTSP, 0x00, sizeof(sTSP));
     memset( sPolicy, 0x00, sizeof(sPolicy));
 
-    ret = JS_TSP_decodeRequest( pReq, &binMsg, sHash, sPolicy );
+    ret = JS_TSP_decodeRequest( pReq, &binMsg, sHash, sPolicy, &binNonce );
     if( ret != 0 )
     {
         LE( "fail to decode tsp request(%d)", ret );
@@ -242,6 +243,7 @@ int procTSP( sqlite3 *db, const BIN *pReq, BIN *pRsp )
 
 end :
     JS_BIN_reset( &binMsg );
+    JS_BIN_reset( &binNonce );
     JS_BIN_reset( &binTST );
     JS_BIN_reset( &binP7 );
     JS_DB_resetTSP( &sTSP );

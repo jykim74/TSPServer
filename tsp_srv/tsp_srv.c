@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include "js_gen.h"
 #include "js_process.h"
@@ -694,7 +695,8 @@ int main( int argc, char *argv[] )
     int nOpt = 0;
     sqlite3* db = NULL;
 
-    sprintf( g_sConfigPath, "%s", "../tsp_srv.cfg" );
+    chdir( "../../../" );
+    sprintf( g_sConfigPath, "%s", "tsp_srv.cfg" );
 
     while(( nOpt = getopt( argc, argv, "c:d:vh")) != -1 )
     {
