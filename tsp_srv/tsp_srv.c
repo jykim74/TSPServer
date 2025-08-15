@@ -695,7 +695,12 @@ int main( int argc, char *argv[] )
     int nOpt = 0;
     sqlite3* db = NULL;
 
+#if defined WIN32
     chdir( "../../../" );
+#else
+    chdir( "../" );
+#endif
+
     sprintf( g_sConfigPath, "%s", "tsp_srv.cfg" );
 
     while(( nOpt = getopt( argc, argv, "c:d:vh")) != -1 )
