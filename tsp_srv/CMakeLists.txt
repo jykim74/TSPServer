@@ -63,7 +63,6 @@ else()
     message( STATUS "Linux Env" )
 
     include_directories(
-        ../../PKILib/lib/linux/openssl/include
         ../../PKILib
         "/usr/local/include" )
 
