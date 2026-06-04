@@ -105,7 +105,7 @@ int TSP_Service( JThreadInfo *pThInfo )
     }
 
     JS_UTIL_createNameValList2("accept", "application/tsp-response", &pRspHeaderList);
-    JS_UTIL_appendNameValList2( pRspHeaderList, "content-type", "application/tps-response");
+    JS_UTIL_appendNameValList2( pRspHeaderList, "content-type", "application/tsp-response");
 
     ret = JS_HTTP_sendBin( pThInfo->nSockFd, pMethod, pRspHeaderList, &binRsp );
     if( ret != 0 )
